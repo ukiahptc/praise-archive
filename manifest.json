@@ -1,0 +1,36 @@
+{
+    "name": "찬양 보관함",
+    "short_name": "찬양 보관함",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#F1EEE5",
+    "theme_color": "#20243F",
+    "description": "교회 찬양팀을 위한 악보 보관함 - 검색, 키별 악보, 파트별 가사 배치",
+    "lang": "ko",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
