@@ -1,5 +1,8 @@
 # 찬양 보관함 — 웹 + 설치형 앱(PWA)
 
+**배포 주소 · https://ukiahptc.github.io/praise-archive/**
+(GitHub Pages, `main` 브랜치 `/docs` 폴더)
+
 제목·가사로 찬양을 찾고, 키별 악보를 바로 꺼내 보는 보관함.
 같은 주소 하나가 **홈페이지**이면서 **설치형 앱**이다.
 
@@ -66,23 +69,31 @@ python3 -m http.server 8787
 
 `file://` 로 직접 열면 서비스워커가 동작하지 않는다. 반드시 서버로 띄운다.
 
-## 4. GitHub Pages 배포
+## 4. 배포
+
+이미 배포돼 있다. 코드를 고친 뒤에는 이렇게만 하면 된다.
 
 ```bash
-cd praise-archive-web
-git init
-git add .
-git commit -m "찬양 보관함 웹 v1"
-git branch -M main
-git remote add origin https://github.com/<계정>/praise-archive-web.git
-git push -u origin main
+cd /Users/junwon/praise-archive
+rsync -a --exclude .git --exclude .gitignore /Users/junwon/praise-archive-web/ docs/
+git add -A docs && git commit -m "웹 수정" && git push origin main
 ```
 
-GitHub 저장소 → **Settings → Pages** → Source 를 `Deploy from a branch`,
-Branch 를 `main` / `(root)` 로 두고 저장. 1~2분 뒤
-`https://<계정>.github.io/praise-archive-web/` 에서 열린다.
+1~2분 뒤 https://ukiahptc.github.io/praise-archive/ 에 반영된다.
+**`docs/sw.js` 의 캐시 버전을 올리는 것을 잊지 말 것** (아래 참고).
 
-모든 경로가 상대경로라 하위 폴더 배포에서도 그대로 동작한다.
+모든 경로가 상대경로라 `/praise-archive/` 하위 배포에서도 그대로 동작한다.
+
+### 예전 Flutter 웹 배포에 대해
+
+같은 주소에 원래 Flutter 웹 빌드가 `gh-pages` 브랜치로 올라가 있었다.
+그 브랜치는 지우지 않고 그대로 두었으므로, 되돌리려면
+저장소 **Settings → Pages** 에서 Source 를 `gh-pages` / `(root)` 로
+바꾸기만 하면 원래대로 복구된다.
+
+`docs/flutter_service_worker.js` 는 예전 방문자의 브라우저에 남아 있는
+Flutter 서비스워커를 자동으로 정리하는 파일이다. 옛 사용자가 모두
+넘어온 뒤에는 지워도 된다.
 
 ## 5. 앱으로 설치
 
