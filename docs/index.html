@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#20243F">
+<meta name="description" content="찬양 악보와 가사를 제목·가사로 검색하고, 키별 악보를 바로 꺼내 보는 보관함. 저장해 둔 곡은 인터넷 없이도 열립니다.">
+<title>찬양 보관함</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/Icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="찬양 보관함">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="찬양 보관함">
+<meta property="og:description" content="제목·가사로 찾고, 키별 악보를 바로 꺼내 보는 찬양 보관함">
+<meta property="og:image" content="icons/Icon-512.png">
+
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div id="prog"></div>
+  <header id="hd" class="hd"></header>
+  <main id="app" class="wrap"></main>
+  <div id="fab"></div>
+  <div id="viewer"></div>
+  <div id="toast"></div>
+
+  <script src="vendor/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="assets/db.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
