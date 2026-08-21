@@ -8,7 +8,7 @@
  * ※ 파일을 고친 뒤에는 아래 CACHE 뒤 숫자를 반드시 올린다.
  *   올리지 않으면 방문자에게 예전 버전이 계속 뜬다.
  * ==========================================================================*/
-const CACHE = 'praise-archive-v5';
+const CACHE = 'praise-archive-v6';
 
 const SHELL = [
   './',
@@ -20,6 +20,7 @@ const SHELL = [
   './vendor/supabase.js',
   './icons/Icon-192.png',
   './icons/Icon-512.png',
+  './icons/Icon-180.png',
   './icons/favicon.png',
 ];
 
