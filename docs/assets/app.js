@@ -396,7 +396,22 @@ function route(){
   if (a === 'settings')      return { name: 'settings' };
   return { name: 'list' };
 }
-const go = hash => { location.hash = hash; };
+/**
+ * 화면 이동.
+ * replace=true 면 방문 기록을 새로 쌓지 않고 현재 기록을 갈아끼운다.
+ * 편집 화면이 기록에 남아 있으면 뒤로가기가 편집 화면으로 되돌아가기 때문에,
+ * 편집 화면을 드나들 때는 항상 replace 를 쓴다.
+ */
+function go(hash, replace){
+  if (replace){
+    history.replaceState(null, '', hash);
+    window.scrollTo(0, 0);
+    render();
+    return;
+  }
+  if (location.hash === hash) { window.scrollTo(0, 0); render(); return; }
+  location.hash = hash;
+}
 
 let renderToken = 0;   // 화면이 바뀌면 앞서 돌던 비동기 그리기를 버리기 위한 표식
 
@@ -898,15 +913,16 @@ async function saveSong(){
       if (error) throw error;
       await pull({ quiet: true });
       toast('저장했습니다');
-      go('#/song/' + ed.id);
+      const id = ed.id;
       ed = null;
+      go('#/song/' + id, true);
     } else {
       const { data, error } = await sb.from('songs').insert(payload).select().single();
       if (error) throw error;
       await pull({ quiet: true });
       toast('곡을 등록했습니다. 이어서 악보를 올릴 수 있습니다.');
       ed = null;
-      go('#/edit/' + data.id);
+      go('#/edit/' + data.id, true);
     }
   } catch (e) {
     toast('저장 실패 — ' + (e.message || e));
@@ -929,7 +945,7 @@ async function deleteSong(id){
     state.offlineIds.delete(id); await IDB.unmarkOffline(id);
     await pull({ quiet: true });
     toast('삭제했습니다');
-    go('#/');
+    go('#/', true);
   } catch (e) { toast('삭제 실패 — ' + (e.message || e)); }
   finally { prog(100); }
 }
@@ -1020,10 +1036,16 @@ document.addEventListener('click', async e => {
   }
 
   switch (act){
-    case 'back':      history.length > 1 ? history.back() : go('#/'); break;
+    case 'back': {
+      const r = route();
+      // 편집 화면에서는 그 곡의 상세로, 그 외에는 목록으로.
+      if (r.name === 'edit' && r.id) go('#/song/' + encodeURIComponent(r.id), true);
+      else go('#/', true);
+      break;
+    }
     case 'settings':  go('#/settings'); break;
     case 'new':       ed = null; go('#/new'); break;
-    case 'edit':      ed = null; go('#/edit/' + encodeURIComponent(t.dataset.id)); break;
+    case 'edit':      ed = null; go('#/edit/' + encodeURIComponent(t.dataset.id), true); break;
     case 'clearq': {
       state.query = '';
       const input = $('#q');
