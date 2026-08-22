@@ -59,7 +59,18 @@ function fmtTime(ts){
   const d = new Date(ts), p = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-function safeName(s){ return String(s).replace(/[\\/:*?"<>|#%]/g,'_'); }
+/** 저장 경로에 쓸 짧은 무작위 토큰 */
+function rid(){ return Math.random().toString(36).slice(2, 6); }
+
+/** 파일명에서 확장자만 뽑는다. 없으면 mime으로 추정한다. */
+function extOf(name, mime){
+  const m = String(name).match(/\.[A-Za-z0-9]{1,5}$/);
+  if (m) return m[0].toLowerCase();
+  if (mime === 'application/pdf') return '.pdf';
+  if (mime === 'image/png') return '.png';
+  if (mime === 'image/jpeg') return '.jpg';
+  return '';
+}
 function debounce(fn, ms){
   let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
@@ -838,10 +849,14 @@ async function onPickFiles(e){
   for (let i = 0; i < files.length; i++){
     const file = files[i];
     ord++;
+    const mime = file.type || 'application/octet-stream';
+    // 저장 경로에는 원본 파일명을 넣지 않는다.
+    // Supabase Storage 키는 ASCII만 허용해서 한글 파일명이면 'Invalid key'로 실패한다.
+    // 원본 이름은 sheets.filename 컬럼에 그대로 남긴다.
+    //
     // 교체할 때도 항상 새 경로를 쓴다. 같은 경로를 재사용하면 다른 사람 기기에
     // 이미 받아 둔 예전 파일이 계속 보이게 된다.
-    const path = `${ed.id}/${key}_${Date.now()}_${i}_${safeName(file.name)}`;
-    const mime = file.type || 'application/octet-stream';
+    const path = `${ed.id}/${key}_p${ord}_${Date.now()}_${rid()}${extOf(file.name, mime)}`;
     try {
       const up = await sb.storage.from(BUCKET)
         .upload(path, file, { contentType: mime, upsert: false });
