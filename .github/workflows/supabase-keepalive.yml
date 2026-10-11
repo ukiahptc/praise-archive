@@ -1,0 +1,48 @@
+# ============================================================================
+# Supabase 깨우기 — 무료 요금제 자동 일시정지 방지
+#
+# 무료 Supabase 프로젝트는 7일간 API 요청이 없으면 자동으로 멈춘다.
+# 멈추면 앱에서 곡 목록·악보가 전혀 불러와지지 않는다(2026-08, 2026-09 두 번 발생).
+# 그래서 매일 한 번 songs 테이블을 읽어 '활동'을 남긴다.
+#
+# - 접속 주소와 키는 docs/config.js 에서 그대로 읽는다 (한 곳만 고치면 됨)
+# - 요청이 실패하면 워크플로도 실패로 끝나, GitHub가 메일로 알려 준다
+# - 예약 실행은 기본 브랜치(main)에 있을 때만 돌아간다
+# - 저장소에 60일간 커밋이 없으면 GitHub가 예약 실행을 자동으로 꺼 버린다.
+#   그때는 Actions 탭 → 이 워크플로 → "Enable workflow" 를 눌러 다시 켠다.
+# ============================================================================
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: '17 21 * * *'      # 매일 06:17 KST (UTC 21:17)
+  workflow_dispatch:           # Actions 탭에서 수동 실행도 가능
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs/config.js
+          sparse-checkout-cone-mode: false
+
+      - name: songs 테이블 읽기
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(sed -n "s/.*url: *'\([^']*\)'.*/\1/p" docs/config.js)
+          KEY=$(sed -n "s/.*anonKey: *'\([^']*\)'.*/\1/p" docs/config.js)
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "docs/config.js 에서 url 또는 anonKey 를 읽지 못했습니다"; exit 1
+          fi
+          echo "요청: $URL/rest/v1/songs"
+          BODY=$(curl --fail --silent --show-error --max-time 30 \
+            "$URL/rest/v1/songs?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "응답: $BODY"
+          echo "Supabase 프로젝트가 깨어 있습니다."

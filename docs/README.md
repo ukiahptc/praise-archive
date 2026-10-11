@@ -41,6 +41,18 @@
 > `using (true)` → `using (auth.role() = 'authenticated')` 로 바꾸고 다시 Run 하면 된다.
 > (그 경우 앱에 로그인 화면을 붙이는 작업이 추가로 필요하다)
 
+## 1-1. 자동 일시정지 주의 (무료 요금제)
+
+무료 Supabase 프로젝트는 **7일간 API 요청이 없으면 자동으로 멈춘다.**
+멈추면 서버 주소 자체가 사라져(DNS 미해결) 앱에서 곡 목록·악보가 하나도 안 뜬다.
+2026년 8월·9월에 두 번 겪었다.
+
+- 복구: https://supabase.com/dashboard → 프로젝트 → **Restore project**
+- 예방: `.github/workflows/supabase-keepalive.yml` 이 매일 06:17(KST) `songs` 를 한 번 읽어 활동을 남긴다.
+  `main` 브랜치에 있어야 예약 실행이 돌고, 저장소에 60일간 커밋이 없으면 GitHub가 예약을 꺼 버리므로
+  그때는 Actions 탭에서 **Enable workflow** 를 다시 누른다.
+- 멈춘 채 90일이 지나면 삭제 대상이 되니 안내 메일(ant.wilson@supabase.com)이 오면 바로 복구한다.
+
 ## 2. 접속 정보
 
 `config.js` 에 이미 채워져 있다 (56곡 · 악보 109장 연결 확인 완료).
