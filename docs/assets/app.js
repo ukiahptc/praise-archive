@@ -173,13 +173,21 @@ function normSong(row){
 const pagesFor = (song, key) =>
   song.sheets.filter(s => s.musicKey === key).sort((a,b) => a.ord - b.ord);
 
-/* 가사를 붙여넣기용 텍스트로 */
-function lyricsToText(lyrics, withLabels){
+/* 곡에 저장된 배치. 비어 있으면 파트를 적은 순서 */
+function defaultSeq(lyrics){
+  return lyrics.arrangement.length ? [...lyrics.arrangement] : lyrics.sections.map(s => s.id);
+}
+/* 가사를 붙여넣기용 텍스트로. seq를 주면 그 순서대로 */
+function lyricsToText(lyrics, withLabels, seq){
   const map = new Map(lyrics.sections.map(s => [s.id, s]));
-  const seq = lyrics.arrangement.length ? lyrics.arrangement : lyrics.sections.map(s => s.id);
-  return seq.map(id => map.get(id)).filter(Boolean)
+  return (seq || defaultSeq(lyrics)).map(id => map.get(id)).filter(Boolean)
     .map(s => withLabels ? `[${s.label}]\n${s.text.trim()}` : s.text.trim())
     .join('\n\n');
+}
+/* 배치 순서를 한 줄로: "Verse 1 → Chorus → Verse 2 → Chorus" */
+function seqToOrderText(lyrics, seq){
+  const map = new Map(lyrics.sections.map(s => [s.id, s]));
+  return seq.map(id => map.get(id)).filter(Boolean).map(s => s.label).join(' → ');
 }
 
 /* ============================================================================
@@ -562,7 +570,9 @@ function viewList(){
 }
 
 /* ── 상세 ──────────────────────────────────────────────────────────────── */
-const detailUI = { key: null, songId: null };
+/* arr = 상세 화면에서 만들고 있는 배치(파트 id 배열). 곡을 바꾸면 비운다.
+   저장하지 않는 한 서버에는 손대지 않는다 — 그날 콘티용으로 순서만 짜서 복사하는 용도 */
+const detailUI = { key: null, songId: null, arr: null };
 
 function viewDetail(id){
   const song = state.songs.find(s => s.id === id);
@@ -571,15 +581,20 @@ function viewDetail(id){
       <p>곡을 찾을 수 없습니다.\n삭제되었거나 아직 동기화되지 않았습니다.</p></div>`;
     return;
   }
-  if (detailUI.songId !== id){ detailUI.songId = id; detailUI.key = null; }
+  if (detailUI.songId !== id){ detailUI.songId = id; detailUI.key = null; detailUI.arr = null; }
   if (!detailUI.key || !song.keys.includes(detailUI.key)) detailUI.key = song.keys[0] || null;
 
   const saved = state.offlineIds.has(song.id);
   const key = detailUI.key;
   const pages = key ? pagesFor(song, key) : [];
   const lyr = song.lyrics;
-  const seq = lyr.arrangement.length ? lyr.arrangement : lyr.sections.map(s => s.id);
   const secMap = new Map(lyr.sections.map(s => [s.id, s]));
+  const savedSeq = defaultSeq(lyr);
+  // 작업 중인 배치. 동기화로 파트가 사라졌으면 그 항목만 뺀다
+  if (!detailUI.arr) detailUI.arr = [...savedSeq];
+  detailUI.arr = detailUI.arr.filter(sid => secMap.has(sid));
+  const seq = detailUI.arr;
+  const changed = seq.join('|') !== savedSeq.join('|');
 
   $('#app').innerHTML = `
     <section class="card sec">
@@ -618,26 +633,42 @@ function viewDetail(id){
       : '<div class="note">등록된 악보가 없습니다. ‘곡 수정’에서 키별 악보를 올려 주세요.</div>'}
     </section>
 
+    ${lyr.sections.length ? `
     <section class="card sec">
-      <div class="sec-h"><h3>가사</h3>
+      <div class="sec-h"><h3>배치 — 파트를 눌러 순서 만들기</h3>
         <div class="btnrow">
-          <button class="btn sm" data-act="copy" data-labels="1">라벨 포함 복사</button>
-          <button class="btn sm" data-act="copy" data-labels="0">가사만 복사</button>
+          ${changed ? '<button class="btn sm" data-act="arr-reset">되돌리기</button>' : ''}
+          ${seq.length ? '<button class="btn sm" data-act="arr-clear">전체 지우기</button>' : ''}
         </div>
       </div>
-      ${lyr.sections.length ? seq.map(sid => {
+      <div class="chips wrap">${lyr.sections.map(s =>
+        `<button class="chip" data-act="arr-add" data-sec="${esc(s.id)}">＋ ${esc(s.label)}</button>`).join('')}</div>
+      ${seq.length ? `<div class="arr">${seq.map((sid, i) => {
+          const s = secMap.get(sid);
+          return `<span class="step"><i>${i + 1}</i>${esc(s.label)}
+            <button data-act="arr-del" data-idx="${i}" aria-label="빼기">✕</button></span>`;
+        }).join('')}</div>`
+      : '<div class="note">위 파트를 눌러 순서를 만드세요. 같은 파트를 여러 번 넣을 수 있습니다.</div>'}
+      <div class="btnrow" style="margin-top:12px">
+        <button class="btn pri sm" data-act="copy" data-labels="1">배치대로 복사</button>
+        <button class="btn sm" data-act="copy" data-labels="0">가사만 복사</button>
+        <button class="btn sm" data-act="arr-order">순서만 복사</button>
+        ${changed ? '<button class="btn sm" data-act="arr-save">기본 배치로 저장</button>' : ''}
+      </div>
+      <div class="note" style="margin-top:8px">${changed
+        ? '바꾼 순서는 복사에만 쓰이고 서버에는 저장되지 않습니다. 모두에게 기본 배치로 두려면 저장을 누르세요.'
+        : '곡에 저장된 기본 배치입니다. 파트를 눌러 그날 콘티에 맞게 바꾼 뒤 복사하세요.'}</div>
+    </section>` : ''}
+
+    <section class="card sec">
+      <div class="sec-h"><h3>가사${changed ? ' — 바꾼 배치 순서' : ''}</h3></div>
+      ${lyr.sections.length ? (seq.length ? seq.map(sid => {
           const s = secMap.get(sid); if (!s) return '';
           return `<div class="lyr-part">
             <div class="lyr-lab">${esc(s.label)}</div>
             <div class="lyr-txt">${esc(s.text)}</div></div>`;
-        }).join('')
+        }).join('') : '<div class="note">배치가 비어 있습니다.</div>')
       : '<div class="note">등록된 가사가 없습니다.</div>'}
-      ${lyr.arrangement.length ? `
-        <div class="sec-h" style="margin:16px 0 8px"><h3>배치 순서</h3></div>
-        <div class="arr">${lyr.arrangement.map((sid, i) => {
-          const s = secMap.get(sid); if (!s) return '';
-          return `<span class="step"><i>${i + 1}</i>${esc(s.label)}</span>`;
-        }).join('')}</div>` : ''}
     </section>`;
 
   if (key) paintSheets(song, key);
@@ -929,6 +960,28 @@ async function saveSong(){
   } finally { prog(100); }
 }
 
+/* 상세 화면에서 만든 배치를 곡의 기본 배치로 저장 */
+async function saveArrangement(song, seq){
+  if (DEMO){ toast('데모 모드에서는 저장할 수 없습니다'); return; }
+  if (!state.online){ toast('오프라인에서는 저장할 수 없습니다'); return; }
+  const payload = {
+    lyrics: {
+      sections: song.lyrics.sections.map(s => ({ id: s.id, type: s.type, label: s.label, text: s.text })),
+      arrangement: seq,
+    },
+  };
+  prog(40);
+  try {
+    const { error } = await sb.from('songs').update(payload).eq('id', song.id);
+    if (error) throw error;
+    await pull({ quiet: true });
+    toast('기본 배치로 저장했습니다');
+    viewDetail(song.id);
+  } catch (e) {
+    toast('저장 실패 — ' + (e.message || e));
+  } finally { prog(100); }
+}
+
 async function deleteSong(id){
   if (DEMO || !state.online){ toast('온라인일 때만 삭제할 수 있습니다'); return; }
   const song = state.songs.find(s => s.id === id);
@@ -1063,7 +1116,22 @@ document.addEventListener('click', async e => {
 
     case 'copy': {
       const song = state.songs.find(s => s.id === detailUI.songId);
-      if (song) copyText(lyricsToText(song.lyrics, t.dataset.labels === '1'));
+      if (song) copyText(lyricsToText(song.lyrics, t.dataset.labels === '1', detailUI.arr || undefined));
+      break;
+    }
+    /* 상세 화면의 배치 만들기 */
+    case 'arr-add':   if (detailUI.arr) detailUI.arr.push(t.dataset.sec); viewDetail(detailUI.songId); break;
+    case 'arr-del':   if (detailUI.arr) detailUI.arr.splice(Number(t.dataset.idx), 1); viewDetail(detailUI.songId); break;
+    case 'arr-clear': detailUI.arr = []; viewDetail(detailUI.songId); break;
+    case 'arr-reset': detailUI.arr = null; viewDetail(detailUI.songId); break;
+    case 'arr-order': {
+      const song = state.songs.find(s => s.id === detailUI.songId);
+      if (song && detailUI.arr) copyText(seqToOrderText(song.lyrics, detailUI.arr));
+      break;
+    }
+    case 'arr-save': {
+      const song = state.songs.find(s => s.id === detailUI.songId);
+      if (song && detailUI.arr) await saveArrangement(song, detailUI.arr);
       break;
     }
 

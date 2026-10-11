@@ -70,6 +70,8 @@ a{color:var(--brass-deep)}
   background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);
 }
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chips.wrap{flex-wrap:wrap;overflow:visible;padding:0 0 10px}
+.arr .step button{font-size:11px;line-height:1;padding:0 2px;color:var(--ink-faint)}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .list{display:flex;flex-direction:column;gap:8px}
